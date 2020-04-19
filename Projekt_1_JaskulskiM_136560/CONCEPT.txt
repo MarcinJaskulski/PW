@@ -1,0 +1,23 @@
+TEMAT: Czytelnicy i Pisarze
+    Zmienne sterujące:
+        #define N 20 // ilość procesów
+        #define K 6 // wielkość polki
+        #define dziela 15 // ile dziel ma byc napisanych - W momencie napisania ostatniego dzieła program się kończy
+
+    Początkowo zadeklarowałem pamięć współdzieloną zawierającą podstawowe informacje:
+        buf[0] = 0; // ilość wyprodukowanych dziel
+        buf[1] = 0; // startowa liczba osób w czytelni
+        buf[2] = 0; // liczba dziel na polce,
+    osobną pamięć współdzieloną dla oznaczenia roli każdego procesu oraz pamięć współdzieloną do przechowywania id kolejki komunikatu dla każdego miejsce na półce głównej.
+    Dodatkowo zadeklarowałem 2 semafory odpowiadające za synchronizację dostępu do czytelni.
+    Na koniec dodałem główną kolejkę komunikatu zawierającą aktualne dzieło z unikalnym id, oraz poboczne kolejki półki  (w uproszczeni założyłem, że każde miejsce na półce ma swoją półkę z id procesów) dla K-1 miejsc na półce głównej (dalej nazywane kolejkami półek). W nich będę umieszczał id procesu, który ma przeczytać dane dzieło.
+
+    W procesie głównym utworzyłem pętlę pozwalającą tworzyć odpowiednią ilość procesów podanych w N (jest to drzewo z korzeniem i jednym poziomem potomków). Na wstępie przypisuję procesowi 0 i 1 rolę pisarza, a reszta zostaje czytelnikami. Proces główny przechodzi do czekania w linijce 242 na zakończenie potomków. Tymczasem potomkowie wchodzą do pętli kończącej się po napisaniu określonej liczby dzieł. Procesy najpierw losują rolę, następnie według niej i określenia, czy jest coś do przeczytania/napisania przechodzą do kolejnych instrukcji.  
+
+    Pisarz:
+    Opuszcza semafor pisania zapewniając sobie wyłączny dostęp do czytelni. Proces iteruje po wszystkich kolejkach półek szukając przy pomocy msgctl z flagą IPC_STAT kolejki, która nie zawiera żadnego komunikatu. W tej kolejce umieścimy informacje o procesach, które mają przeczytać nowe dzieło. Następnie sprawdzamy, który proces jest obecnie czytelnikiem i umieszczamy w kolejce jego id. Znajdując pierwszy proces, który jest czytelnikiem dodajemy do kolejki głównej nowe dzieło z unikalnym id. Na koniec podnosi semafor.
+
+    Czytelnik:
+    Opuszcza semafor czytania odpowiadający za możliwość zwiększenia liczby osób w czytani i opuszczenie semafora pisarza, jeśli jest pierwszym wchodzącym. Proces szuka swojego id na każdej kolejce półki. Jeśli znajdzie siebie to usuwa swoje id z kolejki, następnie sprawdza, czy jest coś jeszcze w kolejce półki. Jeśli nie, to odczytując z kolejki głównej dzieło usuwa je z niej robiąc miejsce na kolejne. Na koniec znowu zapewniamy procesowi wyłączny dostęp, aby ten mógł zmniejszyć ilość osób w czytelni i jeśli jest ostatnim czytelnikiem, to podnieść semafor pisarza.
+
+

@@ -1,0 +1,13 @@
+TEMAT: Cząsteczki wody
+    Zmienne sterujące:
+        #define Prod_size_set 20 // ilość producentów
+
+    Początkowo zadeklarowałem "H_amount", "O_amount", odpowiadające za zliczanie liczby dostępnych pierwiastków danego typu.
+    Kolejnym krokiem było zadeklarowanie mutex'a "prod_mutex" odpowiadającego za możliwość zmiany tych danych, oraz "H_cond" i "O_cond" odpowiadających za zatrzymanie warunkowe, jeśli nie mamy dostępnych komplementarnych związków.
+
+PRZEBIEG WĄTKU:
+    Każdy wątek losuje jaki pierwiastek będzie produkował w danej turze. Sztucznie wprowadziłem, że wątki nr 0 i 2 zawsze produkują H, a nr 1 O. Zabieg jest potrzebny do symulacji, ponieważ z czasem wszystkie wątki produkują jeden typ pierwiastka i dochodzi do zawieszenia.
+    Najpierw wątek opuszcza semafor, aby mieć wyłączny dostęp do zmiennych globalnych.
+    Jeśli wątek produkuje H to zwiększa dostępną liczbę H w pamięci globalnej, następnie sprawdza, czy są komplementarne pierwiastki do stworzenia wody. Jeśli tak, to produkuje wodę, zmniejsza liczbę odpowiednich pierwiastków, oraz wypuszcza z zmiennej warunkowej wątki, które je wyprodukowały. Jeśli jednak nie ma komplementarnych pierwiastków, to zatrzymuję wątek w zmiennej warunkowej przy pomocy pthread_cond_wait(); i zwalniam mutex odpowiadający za możliwość edycji zmiennych.
+    Jeśli wątek produkuje O to działa analogicznie z tą różnicą, że sprawdza i zmienia komplementarne do siebie pierwiastki. 
+
